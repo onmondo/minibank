@@ -1,12 +1,13 @@
 package com.minibank.demo.user;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class WithdrawITransaction implements ITransaction {
     private Long id;
     private LocalDateTime timestamp;
     private BankAccount bankAccount;
-    private Double amount;
+    private BigDecimal amount;
     private String type;
 
     public WithdrawITransaction(String type) {
@@ -26,14 +27,14 @@ public class WithdrawITransaction implements ITransaction {
         return this.type;
     }
 
-    public Double getAmount() {
+    public BigDecimal getAmount() {
         return this.amount;
     }
 
     public void process() throws Exception {
-        Double currentBalance = this.bankAccount.getBalance();
-        Double newBalance = currentBalance - this.amount;
-        if (newBalance <= 0) {
+        BigDecimal currentBalance = this.bankAccount.getBalance();
+        BigDecimal newBalance = currentBalance.subtract(this.amount);
+        if (newBalance.compareTo(BigDecimal.ZERO) <= 0) {
             throw new Exception("Insufficient balance to withdraw");
         }
 
@@ -44,8 +45,8 @@ public class WithdrawITransaction implements ITransaction {
         this.bankAccount = bankAccount;
     }
 
-    public void setAmount(Double amount) throws Exception {
-        if (amount <= 0) {
+    public void setAmount(BigDecimal amount) throws Exception {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new Exception("Invalid amount");
         }
         this.amount = amount;

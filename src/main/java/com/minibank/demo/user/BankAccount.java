@@ -3,6 +3,7 @@ package com.minibank.demo.user;
 import jakarta.persistence.*;
 import org.springframework.cglib.core.Local;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -22,16 +23,17 @@ public class BankAccount {
     private Long id;
     private String accountNumber;
     private String holderName;
-    private Double balance;
+    private BigDecimal balance;
     private String currency;
-    private Long userId;
+    private boolean hasReversal;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
 
     public BankAccount() {
-        this.balance = 0.00;
+        this.balance = BigDecimal.ZERO;
+        this.hasReversal = false;
     }
 
     public void setId(Long id) {
@@ -42,7 +44,7 @@ public class BankAccount {
         this.accountNumber = UUID.randomUUID().toString();
     }
 
-    public void setBalance(Double balance) {
+    public void setBalance(BigDecimal balance) {
         this.balance = balance;
     }
 
@@ -83,10 +85,9 @@ public class BankAccount {
     }
 
     public void setUserId(Long userId) {
-        this.userId = userId;
     }
 
-    public Double getBalance() {
+    public BigDecimal getBalance() {
         return balance;
     }
 
@@ -100,6 +101,13 @@ public class BankAccount {
 
     public String getHolderName() {
         return holderName;
+    }
+
+    public void setHasReversal(boolean hasReversal) {
+        this.hasReversal = hasReversal;
+    }
+    public boolean isHasReversal() {
+        return hasReversal;
     }
 
     @Override

@@ -3,14 +3,14 @@ package com.minibank.demo.user;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-public class DepositITransaction implements ITransaction {
+public class ReverseDepositITransaction implements ITransaction {
     private Long id;
     private LocalDateTime timestamp;
     private BankAccount bankAccount;
     private BigDecimal amount;
     private String type;
 
-    public DepositITransaction(String type) {
+    public ReverseDepositITransaction(String type) {
         this.type = type;
         this.timestamp = LocalDateTime.now();
     }
@@ -21,9 +21,9 @@ public class DepositITransaction implements ITransaction {
 
     public void process() throws Exception {
         BigDecimal currentBalance = this.bankAccount.getBalance();
-        BigDecimal newBalance = currentBalance.add(this.amount) ;
+        BigDecimal newBalance = currentBalance.add(this.amount);
         if (newBalance.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new Exception("Insufficient balance to withdraw");
+            throw new Exception("Reversal not allowed due to insufficient funds");
         }
 
         this.bankAccount.setBalance(newBalance);

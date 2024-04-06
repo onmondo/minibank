@@ -2,9 +2,10 @@ package com.minibank.demo.user;
 
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -46,13 +47,23 @@ public class UserService {
         return userOptional.get();
     }
 
-    public void addNewUser(User user) {
+    public User getAdminUser(Long id) {
+        Optional<User> userOptional = userRepository.findAdminUsers(id, true);
+        if (!userOptional.isPresent()) {
+            throw new IllegalStateException("Admin user does not exist");
+        }
+
+        return userOptional.get();
+    }
+
+    public void addNewUser(User user, boolean isAdmin) {
         if(isUserNameTaken(user.getUsername())) {
             throw new IllegalStateException("Username taken");
         }
         user.setDeletedAt(null);
         user.setCreatedAt();
         user.setUpdatedAt();
+        user.setAdmin(isAdmin);
         userRepository.save(user);
     }
 
@@ -62,10 +73,11 @@ public class UserService {
             throw new IllegalStateException("User with id " + id + " does not exist");
         }
 
+
         userRepository.deleteById(id);
     }
     @Transactional
-    public void updateUser(Long id, String name, String username) {
+    public void updateUser(Long id, String name, String username, boolean isAdmin) {
         boolean exists = userRepository.existsById(id);
         if (!exists) {
             throw new IllegalStateException("User with id " + id + " does not exist");
@@ -88,6 +100,7 @@ public class UserService {
             user.setUsername(username);
         }
         user.setUpdatedAt();
+        user.setAdmin(isAdmin);
         userRepository.save(user);
     }
 
@@ -101,9 +114,12 @@ public class UserService {
         return false;
     }
     @Transactional
-    public void deposit(String accountNumber, Double amount) throws Exception {
+    public void deposit(String accountNumber, BigDecimal amount) throws Exception {
         Optional<BankAccount> bankAccountOptional = bankAccountRepository.findBankAccountByAccountNumber(accountNumber);
         BankAccount bankAccount = bankAccountOptional.get();
+        if(bankAccount == null) {
+            throw new IllegalStateException("Bank account number does not exist");
+        }
 
         DepositTransactionFactory transactionMaker = new DepositTransactionFactory();
         ITransaction transaction = transactionMaker.processTransaction();
@@ -111,6 +127,120 @@ public class UserService {
         transaction.setAmount(amount);
         transaction.process();
 
+        persistTransaction(bankAccount, transaction);
+    }
+    @Transactional
+    public void withdraw(String accountNumber, BigDecimal amount) throws Exception {
+        Optional<BankAccount> bankAccountOptional = bankAccountRepository.findBankAccountByAccountNumber(accountNumber);
+        BankAccount bankAccount = bankAccountOptional.get();
+        if(bankAccount == null) {
+            throw new IllegalStateException("Bank account number does not exist");
+        }
+
+        WithdrawTransactionFactory transactionMaker = new WithdrawTransactionFactory();
+        ITransaction transaction = transactionMaker.processTransaction();
+        transaction.setBankAccount(bankAccount);
+        transaction.setAmount(amount);
+        transaction.process();
+
+        persistTransaction(bankAccount, transaction);
+    }
+
+    public List<Transaction> getTransactionHistory(String accountNumber, int page, int limit) {
+        Optional<BankAccount> bankAccountOptional = bankAccountRepository.findBankAccountByAccountNumber(accountNumber);
+        BankAccount bankAccount = bankAccountOptional.get();
+        if(bankAccount == null) {
+            throw new IllegalStateException("Bank account number does not exist");
+        }
+
+        Pagination pagination = new Pagination(page, limit);
+        pagination.computeOffset();
+
+        Pageable pageable = PageRequest.of(
+                pagination.getPage(),
+                pagination.getLimit(),
+                Sort.by("timestamp").descending());
+
+        Page<Transaction> pageableTransactions =
+                transactionRepository.findTransactionsWithPagination(
+                        bankAccount.getAccountNumber(),
+                        pageable
+                );
+
+        List<Transaction> transactions = pageableTransactions.getContent();
+        return transactions;
+    }
+
+    public Transaction getTransactionByNumber(String accountNumber, String txnNumber) {
+        Optional<BankAccount> bankAccountOptional = bankAccountRepository.findBankAccountByAccountNumber(accountNumber);
+        BankAccount bankAccount = bankAccountOptional.get();
+        if(bankAccount == null) {
+            throw new IllegalStateException("Bank account number does not exist");
+        }
+        return transactionRepository.findByTxnNumber(txnNumber);
+    }
+
+    public void reverseDepositTransaction(String accountNumber, String txnNumber) throws Exception {
+        Optional<BankAccount> bankAccountOptional = bankAccountRepository.findBankAccountByAccountNumber(accountNumber);
+        BankAccount bankAccount = bankAccountOptional.get();
+        if(bankAccount == null) {
+            throw new IllegalStateException("Bank account number does not exist");
+        }
+        if(bankAccount.isHasReversal()) {
+            throw new IllegalStateException("You're not allowed to reverse another transaction until reconciliation is complete ");
+        }
+
+        Transaction currentTransaction = transactionRepository.findByTxnNumber(txnNumber);
+        if(currentTransaction == null) {
+            throw new IllegalStateException("Transaction does not exist");
+        }
+        if(currentTransaction.isHasReversed()) {
+            throw new IllegalStateException("Transaction has been reversed");
+        }
+
+        DepositTransactionFactory transactionMaker = new DepositTransactionFactory();
+        ITransaction transaction = transactionMaker.reverseTransaction();
+        transaction.setBankAccount(bankAccount);
+        transaction.setAmount(currentTransaction.getAmount());
+        transaction.process();
+
+        persistTransaction(bankAccount, transaction);
+
+        currentTransaction.setHasReversed(true);
+        transactionRepository.save(currentTransaction);
+    }
+
+    public void reverseWithdrawTransaction(String accountNumber, String txnNumber) throws Exception {
+        Optional<BankAccount> bankAccountOptional = bankAccountRepository.findBankAccountByAccountNumber(accountNumber);
+        BankAccount bankAccount = bankAccountOptional.get();
+        if(bankAccount == null) {
+            throw new IllegalStateException("Bank account number does not exist");
+        }
+        if(bankAccount.isHasReversal()) {
+            throw new IllegalStateException("You're not allowed to reverse another transaction until reconciliation is complete ");
+        }
+
+        Transaction currentTransaction = transactionRepository.findByTxnNumber(txnNumber);
+        if(currentTransaction == null) {
+            throw new IllegalStateException("Transaction does not exist");
+        }
+        if(currentTransaction.isHasReversed()) {
+            throw new IllegalStateException("Transaction has been reversed");
+        }
+
+        WithdrawTransactionFactory transactionMaker = new WithdrawTransactionFactory();
+        ITransaction transaction = transactionMaker.reverseTransaction();
+        transaction.setBankAccount(bankAccount);
+        transaction.setAmount(currentTransaction.getAmount());
+        transaction.process();
+
+        persistTransaction(bankAccount, transaction);
+
+        currentTransaction.setHasReversed(true);
+        transactionRepository.save(currentTransaction);
+    }
+
+    private void persistTransaction(BankAccount bankAccount, ITransaction transaction) {
         Transaction newTransaction = new Transaction();
         newTransaction.setAmount(transaction.getAmount());
         newTransaction.setBankAccountNumber(bankAccount.getAccountNumber());
@@ -120,24 +250,17 @@ public class UserService {
         newTransaction.setUpdatedAt();
         transactionRepository.save(newTransaction);
     }
-    @Transactional
-    public void withdraw(String accountNumber, Double amount) throws Exception {
-        Optional<BankAccount> bankAccountOptional = bankAccountRepository.findBankAccountByAccountNumber(accountNumber);
-        BankAccount bankAccount = bankAccountOptional.get();
 
-        WithdrawTransactionFactory transactionMaker = new WithdrawTransactionFactory();
-        ITransaction transaction = transactionMaker.processTransaction();
-        transaction.setBankAccount(bankAccount);
-        transaction.setAmount(amount);
-        transaction.process();
+    public void checkBankAccountsByUserId(Long userId) {
+//        Optional<BankAccount> bankAccountsOptional = bankAccountRepository.findBankAccountByUserId(userId);
+//        if(bankAccountsOptional.isPresent()) {
+//            throw new IllegalStateException("Cannot delete user due to existing bank accounts linked to the user account");
+//        }
+        Optional<User> userOptional = userRepository.findAdminUsers(userId, true);
+        if (userOptional.isPresent()) {
+            throw new IllegalStateException("Cannot delete admin user");
+        }
 
-        Transaction newTransaction = new Transaction();
-        newTransaction.setAmount(transaction.getAmount());
-        newTransaction.setBankAccountNumber(bankAccount.getAccountNumber());
-        newTransaction.setType(transaction.getType());
-        newTransaction.setTimestamp(transaction.getTimestamp());
-        newTransaction.setCreatedAt();
-        newTransaction.setUpdatedAt();
-        transactionRepository.save(newTransaction);
+
     }
 }

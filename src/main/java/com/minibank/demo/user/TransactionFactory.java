@@ -7,5 +7,12 @@ public abstract class TransactionFactory {
         return transaction;
     }
 
+    public ITransaction createTransactionReversal() throws Exception {
+        ITransaction transaction = this.reverseTransaction();
+        transaction.process();
+        return transaction;
+    }
+
     protected abstract ITransaction processTransaction();
+    protected abstract ITransaction reverseTransaction();
 }

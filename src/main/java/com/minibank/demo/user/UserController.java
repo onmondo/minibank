@@ -18,18 +18,6 @@ public class UserController {
     }
     @GetMapping
     public List<User> getUsers() throws Exception {
-//        User newUser = new User();
-//        newUser.setId(1l);
-//        newUser.setName("John Raymond");
-//        BankAccount newBankAccount = newUser.createAccount();
-//        newBankAccount.setId(7893922l);
-//        newBankAccount.setBalance(1000.00);
-//        newBankAccount.setAccountNumber("73fh73b87s");
-//        newBankAccount.setHolderName(newUser.getName());
-//        newBankAccount.setCurrency("PHP");
-//        newUser.deposit(newBankAccount, 1500.00);
-//        return List.of(newUser.toString());
-
         return this.userService.getUsers();
     }
 
@@ -39,23 +27,25 @@ public class UserController {
     }
 
     @PostMapping
-    public void registerNewUser(@RequestBody User user) {
-        userService.addNewUser(user);
+    public void registerNewUser(
+            @RequestBody User user,
+            @RequestParam(required = false) boolean isAdmin) {
+        userService.addNewUser(user, isAdmin);
     }
 
     @DeleteMapping(path = "{userId}")
     public void deleteUser(@PathVariable("userId") Long id) {
+        userService.checkBankAccountsByUserId(id);
         userService.deleteUser(id);
     }
 
     @PutMapping(path = "{userId}")
     public void updateUser(
             @PathVariable("userId") Long id,
-//            @RequestParam(required = false) String name,
-//            @RequestParam(required = false) String username,
+            @RequestParam(required = false) boolean isAdmin,
             @RequestBody(required = false) User user) {
-        System.out.println(user.getName() + user.getUsername());
-        userService.updateUser(id, user.getName(), user.getUsername());
+        System.out.println(isAdmin);
+        userService.updateUser(id, user.getName(), user.getUsername(), isAdmin);
     }
 
     @PostMapping(path = "{userId}/bankaccounts")
@@ -76,7 +66,7 @@ public class UserController {
     public BankAccount getUsersBankAccount(
             @PathVariable("userId") Long id,
             @PathVariable("bankAccountNumber") String accountNumber) {
-        User user = userService.getUser(id);
+        userService.getUser(id);
         return bankAccountService.getUsersBankAccount(accountNumber);
     }
 
@@ -85,7 +75,7 @@ public class UserController {
             @PathVariable("userId") Long id,
             @PathVariable("bankAccountNumber") String accountNumber,
             @RequestBody TransactionRequest transactionRequest) throws Exception {
-        User user = userService.getUser(id);
+        userService.getUser(id);
         userService.deposit(accountNumber, transactionRequest.getAmount());
     }
 
@@ -94,7 +84,57 @@ public class UserController {
             @PathVariable("userId") Long id,
             @PathVariable("bankAccountNumber") String accountNumber,
             @RequestBody TransactionRequest transactionRequest) throws Exception {
-        User user = userService.getUser(id);
+        userService.getUser(id);
         userService.withdraw(accountNumber, transactionRequest.getAmount());
+    }
+
+    @GetMapping(path = "{userId}/bankaccounts/{bankAccountNumber}/transactions")
+    public List<Transaction> getUserTransactions(
+            @PathVariable("userId") Long id,
+            @PathVariable("bankAccountNumber") String accountNumber,
+            @RequestParam(required = false) int page,
+            @RequestParam(required = false) int limit) {
+        userService.getUser(id);
+        return userService.getTransactionHistory(accountNumber, page, limit);
+    }
+
+    @GetMapping(path = "{userId}/bankaccounts/{bankAccountNumber}/transactions/{transactionId}")
+    public Transaction getUserTransaction(
+            @PathVariable("userId") Long id,
+            @PathVariable("bankAccountNumber") String accountNumber,
+            @PathVariable("transactionId") String transactionId) {
+        userService.getUser(id);
+        return userService.getTransactionByNumber(accountNumber, transactionId);
+    }
+
+    @DeleteMapping(path = "{userId}/bankaccounts/{bankAccountNumber}/transactions/{transactionId}/deposit")
+    public void reverseDepositUserTransaction(
+            @PathVariable("userId") Long id,
+            @PathVariable("bankAccountNumber") String accountNumber,
+            @PathVariable("transactionId") String transactionId) throws Exception {
+        userService.getUser(id);
+        userService.reverseDepositTransaction(accountNumber, transactionId);
+        bankAccountService.markBankAccountReversal(accountNumber);
+    }
+
+    @DeleteMapping(path = "{userId}/bankaccounts/{bankAccountNumber}/transactions/{transactionId}/withdraw")
+    public void reverseWithdrawUserTransaction(
+            @PathVariable("userId") Long id,
+            @PathVariable("bankAccountNumber") String accountNumber,
+            @PathVariable("transactionId") String transactionId) throws Exception {
+        userService.getUser(id);
+        userService.reverseWithdrawTransaction(accountNumber, transactionId);
+        bankAccountService.markBankAccountReversal(accountNumber);
+    }
+
+    @PostMapping(path = "{userId}/bankaccounts/{bankAccountNumber}/reconcile")
+    public void reconcileBankAccount(
+            @PathVariable("userId") Long id,
+            @PathVariable("bankAccountNumber") String accountNumber,
+            @RequestParam(required = false) Long adminId) {
+        userService.getUser(id);
+        User user = userService.getAdminUser(adminId);
+        System.out.println(user);
+        bankAccountService.reconcileBankAccount(accountNumber);
     }
 }

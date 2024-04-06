@@ -42,17 +42,19 @@ public class BankAccountService {
         return bankAccountOptional.get();
     }
 
-//    public void depositFunds(User user, String accountNumber, Double funds) throws Exception {
-//        Optional<BankAccount> bankAccountOptional = bankAccountRepository.findBankAccountByAccountNumber(accountNumber);
-//        BankAccount bankAccount = bankAccountOptional.get();
-//
-//        user.deposit(bankAccount, funds);
-//    }
-//
-//    public void withdrawFunds(User user, String accountNumber, Double funds) throws Exception {
-//        Optional<BankAccount> bankAccountOptional = bankAccountRepository.findBankAccountByAccountNumber(accountNumber);
-//        BankAccount bankAccount = bankAccountOptional.get();
-//
-//        user.withdraw(bankAccount, funds);
-//    }
+    public void markBankAccountReversal(String accountNumber) {
+        Optional<BankAccount> bankAccountOptional = bankAccountRepository.findBankAccountByAccountNumber(accountNumber);
+        BankAccount bankAccount = bankAccountOptional.get();
+        bankAccount.setHasReversal(true);
+
+        bankAccountRepository.save(bankAccount);
+    }
+
+    public void reconcileBankAccount(String accountNumber) {
+        Optional<BankAccount> bankAccountOptional = bankAccountRepository.findBankAccountByAccountNumber(accountNumber);
+        BankAccount bankAccount = bankAccountOptional.get();
+        bankAccount.setHasReversal(false);
+
+        bankAccountRepository.save(bankAccount);
+    }
 }

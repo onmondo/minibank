@@ -3,6 +3,7 @@ package com.minibank.demo.user;
 import jakarta.persistence.*;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +27,8 @@ public class User {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
+
+    private boolean isAdmin;
     @Transient
     private List<BankAccount> bankAccounts;
 
@@ -78,6 +81,7 @@ public class User {
     @Autowired
     public User() {
         this.bankAccounts = new ArrayList<>();
+        this.isAdmin = false;
     }
     public BankAccount createAccount() {
         BankAccount bankAccount = new BankAccount();
@@ -85,35 +89,17 @@ public class User {
         return bankAccount;
     }
 
-//    public void deposit(BankAccount bankAccount, Double amount) throws Exception {
-//        DepositTransactionFactory transactionMaker = new DepositTransactionFactory();
-//        ITransaction transaction = transactionMaker.processTransaction();
-//        Transaction newTransaction = new Transaction();
-//
-//        transaction.setBankAccount(bankAccount);
-//        transaction.setAmount(amount);
-//        transaction.process();
-//
-//        newTransaction.setAmount(transaction.getAmount());
-//        newTransaction.setBankAccountNumber(bankAccount.getAccountNumber());
-//        newTransaction.setType(transaction.getType());
-//        newTransaction.setTimestamp(transaction.getTimestamp());
-//        newTransaction.setCreatedAt();
-//        newTransaction.setUpdatedAt();
-//        transactionRepository.save(newTransaction);
-//    }
-//
-//    public void withdraw(BankAccount bankAccount, Double amount) throws Exception {
-//        WithdrawTransactionFactory transactionMaker = new WithdrawTransactionFactory();
-//        ITransaction transaction = transactionMaker.processTransaction();
-//        transaction.setBankAccount(bankAccount);
-//        transaction.setAmount(amount);
-//        transaction.process();
-//    }
-
-    public Double getBalance(BankAccount bankAccount) {
-        Double currentBalance = bankAccount.getBalance();
+    public BigDecimal getBalance(BankAccount bankAccount) {
+        BigDecimal currentBalance = bankAccount.getBalance();
         return currentBalance;
+    }
+
+    public void setAdmin(boolean admin) {
+        isAdmin = admin;
+    }
+
+    public boolean isAdmin() {
+        return isAdmin;
     }
 
     @Override
@@ -122,6 +108,7 @@ public class User {
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", bankAccounts=" + bankAccounts +
+                ", isAdmin=" + isAdmin +
                 '}';
     }
 }

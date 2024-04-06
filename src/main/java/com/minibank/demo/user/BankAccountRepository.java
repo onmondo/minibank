@@ -2,6 +2,7 @@ package com.minibank.demo.user;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -11,4 +12,6 @@ public interface BankAccountRepository extends JpaRepository<BankAccount, Long> 
     Optional<List<BankAccount>> findBankAccountByUserName(String name);
     @Query("SELECT b FROM BankAccount b WHERE b.accountNumber = ?1")
     Optional<BankAccount> findBankAccountByAccountNumber(String accountNumber);
+//    @Query("SELECT b FROM BankAccount b WHERE b.userId = :userid")
+//    Optional<BankAccount> findBankAccountByUserId(@Param("userid") Long userId);
 }

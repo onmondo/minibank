@@ -5,4 +5,9 @@ public class WithdrawTransactionFactory {
         ITransaction transaction = new WithdrawITransaction("withdraw");
         return transaction;
     }
+
+    protected  ITransaction reverseTransaction() {
+        ITransaction transaction = new ReverseDepositITransaction("withdrawreversal");
+        return transaction;
+    }
 }

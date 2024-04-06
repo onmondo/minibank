@@ -2,6 +2,7 @@ package com.minibank.demo.user;
 
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -22,14 +23,16 @@ public class Transaction {
     private String txnNumber;
     private LocalDateTime timestamp;
     private String bankAccountNumber;
-    private Double amount;
+    private BigDecimal amount;
     private String type;
+    private boolean hasReversed;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
 
     public Transaction() {
         this.txnNumber = UUID.randomUUID().toString();
+        this.hasReversed = false;
     }
     public void setType(String type) {
         this.type = type;
@@ -39,7 +42,7 @@ public class Transaction {
         this.bankAccountNumber = bankAccountNumber;
     }
 
-    public void setAmount(Double amount) {
+    public void setAmount(BigDecimal amount) {
         this.amount = amount;
     }
 
@@ -61,5 +64,37 @@ public class Transaction {
 
     public void setDeletedAt(LocalDateTime deletedAt) {
         this.deletedAt = deletedAt;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public String getBankAccountNumber() {
+        return bankAccountNumber;
+    }
+
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
+
+    public String getTxnNumber() {
+        return txnNumber;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public boolean isHasReversed() {
+        return hasReversed;
+    }
+
+    public void setHasReversed(boolean hasReversed) {
+        this.hasReversed = hasReversed;
     }
 }
