@@ -1,5 +1,7 @@
 package com.minibank.demo.user;
 
+import com.minibank.demo.bank.BankAccount;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 

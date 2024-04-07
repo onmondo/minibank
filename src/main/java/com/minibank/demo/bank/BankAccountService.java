@@ -1,5 +1,7 @@
-package com.minibank.demo.user;
+package com.minibank.demo.bank;
 
+import com.minibank.demo.MiniBankConfigProperties;
+import com.minibank.demo.user.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -9,10 +11,12 @@ import java.util.Optional;
 @Service
 public class BankAccountService {
     private final BankAccountRepository bankAccountRepository;
+    private final MiniBankConfigProperties miniBankConfigProperties;
 
     @Autowired
-    public BankAccountService(BankAccountRepository bankAccountRepository) {
+    public BankAccountService(BankAccountRepository bankAccountRepository, MiniBankConfigProperties miniBankConfigProperties) {
         this.bankAccountRepository = bankAccountRepository;
+        this.miniBankConfigProperties = miniBankConfigProperties;
     }
 
     public List<BankAccount> getBankAccounts() {
@@ -56,5 +60,10 @@ public class BankAccountService {
         bankAccount.setHasReversal(false);
 
         bankAccountRepository.save(bankAccount);
+    }
+
+    public List<String> fetchCurrencies() {
+        Bank bankInstance = Bank.getInstance(miniBankConfigProperties);
+        return bankInstance.getAvailableCurrencies();
     }
 }

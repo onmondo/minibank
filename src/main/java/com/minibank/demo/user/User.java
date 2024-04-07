@@ -1,5 +1,6 @@
 package com.minibank.demo.user;
 
+import com.minibank.demo.bank.BankAccount;
 import jakarta.persistence.*;
 import org.springframework.beans.factory.annotation.Autowired;
 

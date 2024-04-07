@@ -1,5 +1,7 @@
 package com.minibank.demo.user;
 
+import com.minibank.demo.bank.BankAccount;
+import com.minibank.demo.bank.BankAccountRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
@@ -120,6 +122,8 @@ public class UserService {
         if(bankAccount == null) {
             throw new IllegalStateException("Bank account number does not exist");
         }
+
+
 
         DepositTransactionFactory transactionMaker = new DepositTransactionFactory();
         ITransaction transaction = transactionMaker.processTransaction();

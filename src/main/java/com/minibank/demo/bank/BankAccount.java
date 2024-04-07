@@ -1,4 +1,4 @@
-package com.minibank.demo.user;
+package com.minibank.demo.bank;
 
 import jakarta.persistence.*;
 import org.springframework.cglib.core.Local;
