@@ -77,7 +77,7 @@ public class UserController {
             @PathVariable("bankAccountNumber") String accountNumber,
             @RequestBody TransactionRequest transactionRequest) throws Exception {
         userService.getUser(id);
-        userService.deposit(accountNumber, transactionRequest.getAmount());
+        userService.deposit(accountNumber, transactionRequest);
     }
 
     @PostMapping(path = "{userId}/bankaccounts/{bankAccountNumber}/withdraw")
@@ -86,7 +86,7 @@ public class UserController {
             @PathVariable("bankAccountNumber") String accountNumber,
             @RequestBody TransactionRequest transactionRequest) throws Exception {
         userService.getUser(id);
-        userService.withdraw(accountNumber, transactionRequest.getAmount());
+        userService.withdraw(accountNumber, transactionRequest);
     }
 
     @GetMapping(path = "{userId}/bankaccounts/{bankAccountNumber}/transactions")

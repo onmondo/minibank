@@ -1,10 +1,17 @@
 package com.minibank.demo.bank;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.JSONPObject;
 import com.minibank.demo.MiniBankConfigProperties;
 import com.minibank.demo.user.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,10 +33,20 @@ public class BankAccountService {
     public void addNewBankAccount(User user, BankAccount bankAccount) {
         BankAccount newBankAccount = user.createAccount();
 
+        String holderName = bankAccount.getHolderName();
+        String currency = bankAccount.getCurrency();
+
+        if (holderName == null || holderName == "") {
+            throw new IllegalStateException("Holder name is required to continue the registration process.");
+        }
+        if (currency == null || currency == "") {
+            throw new IllegalStateException("Currency is required to continue the registration process.");
+        }
+
         newBankAccount.setUserId(user.getId());
         newBankAccount.setAccountNumber(); // auto-generated
-        newBankAccount.setHolderName(bankAccount.getHolderName());
-        newBankAccount.setCurrency(bankAccount.getCurrency());
+        newBankAccount.setHolderName(holderName);
+        newBankAccount.setCurrency(currency);
         newBankAccount.setDeletedAt(null);
         newBankAccount.setCreatedAt();
         newBankAccount.setUpdatedAt();
@@ -65,5 +82,36 @@ public class BankAccountService {
     public List<String> fetchCurrencies() {
         Bank bankInstance = Bank.getInstance(miniBankConfigProperties);
         return bankInstance.getAvailableCurrencies();
+    }
+
+    public BigDecimal convertAmount(String fromCurrency, String toCurrency, BigDecimal amount) {
+        BigDecimal convertedAmount = new BigDecimal("0.00");
+        String uri = miniBankConfigProperties.apiUrl() +
+                "/v1/convert?api_key=" +
+                miniBankConfigProperties.apiKey() +
+                "&from=" + fromCurrency +
+                "&to=" + toCurrency +
+                "&amount=" + amount.toString();
+
+        WebClient.Builder builder = WebClient.builder();
+        String response = builder.build()
+                .get()
+                .uri(uri)
+                .retrieve()
+                .bodyToMono(String.class).block();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        System.out.println("API Response: " + response);
+        try {
+            JsonNode jsonNode = objectMapper.readTree(response);
+            Double value = jsonNode.get("value").asDouble();
+            System.out.println("Converted amount: " + value);
+            convertedAmount = BigDecimal.valueOf(value).setScale(2, RoundingMode.DOWN);
+
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        return convertedAmount;
     }
 }

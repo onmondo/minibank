@@ -2,6 +2,7 @@ package com.minibank.demo.user;
 
 import com.minibank.demo.bank.BankAccount;
 import com.minibank.demo.bank.BankAccountRepository;
+import com.minibank.demo.bank.BankAccountService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
@@ -17,15 +18,17 @@ public class UserService {
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
     private final BankAccountRepository bankAccountRepository;
-
+    private BankAccountService bankAccountService;
     @Autowired
     public UserService(
             UserRepository userRepository,
             TransactionRepository transactionRepository,
-            BankAccountRepository bankAccountRepository) {
+            BankAccountRepository bankAccountRepository,
+            BankAccountService bankAccountService) {
         this.userRepository = userRepository;
         this.transactionRepository = transactionRepository;
         this.bankAccountRepository = bankAccountRepository;
+        this.bankAccountService = bankAccountService;
     }
 
     public List<User> getUsers() {
@@ -59,9 +62,18 @@ public class UserService {
     }
 
     public void addNewUser(User user, boolean isAdmin) {
+        String name = user.getName();
+        String username = user.getUsername();
+        if(name == null || name == "") {
+            throw new IllegalStateException("Name is required to proceed with the registration");
+        }
+        if(username == null || username == "") {
+            throw new IllegalStateException("Username is required to proceed with the registration");
+        }
         if(isUserNameTaken(user.getUsername())) {
             throw new IllegalStateException("Username taken");
         }
+
         user.setDeletedAt(null);
         user.setCreatedAt();
         user.setUpdatedAt();
@@ -116,25 +128,34 @@ public class UserService {
         return false;
     }
     @Transactional
-    public void deposit(String accountNumber, BigDecimal amount) throws Exception {
+    public void deposit(String accountNumber, TransactionRequest transactionRequest) throws Exception {
         Optional<BankAccount> bankAccountOptional = bankAccountRepository.findBankAccountByAccountNumber(accountNumber);
         BankAccount bankAccount = bankAccountOptional.get();
-        if(bankAccount == null) {
+        if (bankAccount == null) {
             throw new IllegalStateException("Bank account number does not exist");
         }
 
-
-
         DepositTransactionFactory transactionMaker = new DepositTransactionFactory();
         ITransaction transaction = transactionMaker.processTransaction();
+
+        if (transactionRequest.getCurrency() != null && bankAccount.getCurrency() != transactionRequest.getCurrency()) {
+            BigDecimal convertedAmount = bankAccountService.convertAmount(
+                    transactionRequest.getCurrency(),
+                    bankAccount.getCurrency(),
+                    transactionRequest.getAmount());
+
+            transaction.setAmount(convertedAmount);
+        } else {
+            transaction.setAmount(transactionRequest.getAmount());
+        }
+
         transaction.setBankAccount(bankAccount);
-        transaction.setAmount(amount);
         transaction.process();
 
         persistTransaction(bankAccount, transaction);
     }
     @Transactional
-    public void withdraw(String accountNumber, BigDecimal amount) throws Exception {
+    public void withdraw(String accountNumber, TransactionRequest transactionRequest) throws Exception {
         Optional<BankAccount> bankAccountOptional = bankAccountRepository.findBankAccountByAccountNumber(accountNumber);
         BankAccount bankAccount = bankAccountOptional.get();
         if(bankAccount == null) {
@@ -143,8 +164,18 @@ public class UserService {
 
         WithdrawTransactionFactory transactionMaker = new WithdrawTransactionFactory();
         ITransaction transaction = transactionMaker.processTransaction();
+        if (transactionRequest.getCurrency() != null && bankAccount.getCurrency() != transactionRequest.getCurrency()) {
+            BigDecimal convertedAmount = bankAccountService.convertAmount(
+                    transactionRequest.getCurrency(),
+                    bankAccount.getCurrency(),
+                    transactionRequest.getAmount());
+
+            transaction.setAmount(convertedAmount);
+        } else {
+            transaction.setAmount(transactionRequest.getAmount());
+        }
+
         transaction.setBankAccount(bankAccount);
-        transaction.setAmount(amount);
         transaction.process();
 
         persistTransaction(bankAccount, transaction);
@@ -264,7 +295,5 @@ public class UserService {
         if (userOptional.isPresent()) {
             throw new IllegalStateException("Cannot delete admin user");
         }
-
-
     }
 }

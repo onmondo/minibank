@@ -22,9 +22,6 @@ public class Bank {
     private Bank(MiniBankConfigProperties miniBankConfigProperties) {
         availableCurrencies = new ArrayList<>();
         this.miniBankConfigProperties = miniBankConfigProperties;
-        System.out.println(miniBankConfigProperties.apiUrl());
-        System.out.println(miniBankConfigProperties.apiKey());
-        // execute api here to get available currencies
 
         String uri = miniBankConfigProperties.apiUrl() +
                 "/v1/currencies?api_key=" +
