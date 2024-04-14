@@ -10,7 +10,7 @@ pipeline {
         stage('Build') {
             steps {
                 // Get some code from a GitHub repository
-                git 'https://oauth2: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@github.com/onmondo/minibank.git'
+                checkout([$class: 'GitSCM', branches: [[name: 'main']], userRemoteConfigs: [[url: 'https://oauth2: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@github.com/onmondo/minibank.git']]])
 
                 // Run Maven on a Unix agent.
                 sh "mvn -Dmaven.test.failure.ignore=true clean package"
